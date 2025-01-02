@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hardy-Weinberg Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #2575fc;
+        }
+        .results {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 1.2em;
+        }
+        .results p {
+            margin: 10px 0;
+        }
+        .results .conclusion {
+            font-weight: bold;
+            font-size: 1.3em;
+        }
+        .results .conclusion.in-equilibrium {
+            color: green;
+        }
+        .results .conclusion.not-in-equilibrium {
+            color: red;
+        }
+        .chart-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .chart-container img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 5px;
+            background: white;
+        }
+        .form-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        .form-container form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+        .form-container button {
+            background-color: #2575fc;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            display: block;
+            margin: 20px auto 0;
+        }
+        .form-container button:hover {
+            background-color: #1a5fcc;
+        }
+        .error-message {
+            color: red;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Hardy-Weinberg Test</h1>
+
+    <div class="form-container">
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% for field in form %}
+                <div>
+                    {{ field.label_tag }}
+                    {{ field }}
+                    {% if field.errors %}
+                        <div class="error-message">{{ field.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+
+    {% if chi_square %}
+    <div class="results">
+        <h2>Test Results</h2>
+        <p><strong>p-value:</strong> {{ p_value }}</p>
+        <p><strong>p (Dominant allele frequency):</strong> {{ p }}</p>
+        <p><strong>q (Recessive allele frequency):</strong> {{ q }}</p>
+        <p class="conclusion {% if equilibrium_status == 'in equilibrium' %}in-equilibrium{% else %}not-in-equilibrium{% endif %}">
+            Conclusion: {{ equilibrium_status }}
+        </p>
+    </div>
+
+    <div class="chart-container">
+        <h3>Observed vs Expected Frequencies</h3>
+        <img src="data:image/png;base64,{{ plot_url }}" alt="Hardy-Weinberg Test Chart">
+        <p><a href="data:image/png;base64,{{ plot_url }}" download="HardyWeinbergChart.png">Download Chart</a></p>
+    </div>
+    {% endif %}
+    
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANOVA Test</title>
+</head>
+<body>
+    <h2>ANOVA Test</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <label for="csv_file">Upload CSV File:</label>
+        <input type="file" name="csv_file" id="csv_file" required>
+        <button type="submit">Run ANOVA Test</button>
+    </form>
+
+    {% if f_statistic and p_value %}
+        <h3>Results:</h3>
+        <p>F-statistic: {{ f_statistic }}</p>
+        <p>P-value: {{ p_value }}</p>
+    {% endif %}
+
+    {% if error %}
+        <p style="color: red;">{{ error }}</p>
+    {% endif %}
+</body>
+</html>

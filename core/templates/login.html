@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <style> 
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            padding: 50px;
+            margin: 0;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            font-size: 14px;
+            color: #333;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 93%;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            align-content: center;
+        }
+        .form-group button {
+            width: 95%;
+            padding: 10px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .form-group button:hover {
+            background-color: #45a049;
+        }
+        .error-message {
+            color: red;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        .signup-link {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .signup-link a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        .signup-link a:hover {
+            text-decoration: underline;
+        }
+        .forgot-password-link {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .forgot-password-link a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        .forgot-password-link a:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 480px) {
+            body {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h2>Login</h2>
+    <div class="container">
+        <form method="post">
+            {% csrf_token %}
+            {% if form.errors %}
+                <div class="error-message">
+                    <p>Invalid username or password. Please try again.</p>
+                </div>
+            {% endif %}
+            <div class="form-group">
+                <label for="id_username">{{ form.username.label }}</label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                    <div class="error-message">{{ form.username.errors|join:" " }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label for="id_password">{{ form.password.label }}</label>
+                {{ form.password }}
+                {% if form.password.errors %}
+                    <div class="error-message">{{ form.password.errors|join:" " }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <button type="submit">Login</button>
+            </div>
+        </form>
+        <p class="signup-link">Don't have an account? <a href="{% url 'register' %}">Sign Up</a></p>
+        
+        <!-- Forgot Password Link -->
+        <p class="forgot-password-link">
+            <a href="{% url 'password_reset' %}">Forgot your password?</a>
+        </p>
+    </div>
+</body>
+</html>

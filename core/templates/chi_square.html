@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi-Square Test</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #2575fc;
+        }
+        .form-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        .form-container form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+        .results {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 1.2em;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .results p {
+            margin: 10px 0;
+        }
+        .results .conclusion {
+            font-weight: bold;
+            font-size: 1.3em;
+        }
+        .results .conclusion.equilibrium {
+            color: green;
+        }
+        .results .conclusion.not-equilibrium {
+            color: red;
+        }
+        .chart-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .chart-container img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 5px;
+            background: white;
+        }
+        button {
+            background-color: #2575fc;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        button:hover {
+            background-color: #1a5fcc;
+        }
+        footer {
+            text-align: center;
+            padding: 10px 0;
+            background-color: #2575fc;
+            color: white;
+            margin-top: 30px;
+        }
+        footer p {
+            margin: 0;
+        }
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            .form-container form {
+                padding: 15px;
+            }
+            button {
+                padding: 8px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Chi-Square Test</h1>
+
+    <div class="form-container">
+        <form method="POST">
+            {% csrf_token %}
+            {% for field in form %}
+                <div>
+                    {{ field.label_tag }}
+                    {{ field }}
+                    {% if field.errors %}
+                        <div class="error-message">{{ field.errors|join:", " }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+
+    {% if chi_square %}
+    <div class="results">
+        <h2>Test Results</h2>
+        <p><strong>Chi-Square Value:</strong> {{ chi_square }}</p>
+        <p><strong>p-value:</strong> {{ p_value }}</p>
+        <p class="conclusion {% if p_value > 0.05 %}equilibrium{% else %}not-equilibrium{% endif %}">
+            Conclusion: {% if p_value > 0.05 %}
+                The population is in Hardy-Weinberg equilibrium.
+            {% else %}
+                The population is not in Hardy-Weinberg equilibrium.
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="chart-container">
+        <h3>Observed vs Expected Frequencies</h3>
+        <img src="data:image/png;base64,{{ plot_url }}" alt="Chi-Square Test Chart">
+    </div>
+    {% endif %}
+
+    <footer>
+        <p>&copy; 2024 Genetic Statistics Application | <a href="#">Contact Us</a></p>
+    </footer>
+
+</body>
+</html>

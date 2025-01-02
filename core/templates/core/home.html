@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genetic Statistics Home</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to right, #4caf50, #81c784); /* Green gradient */
+            color: #333;
+        }
+        header {
+            background-color: #4caf50; /* Green background for header */
+            padding: 20px;
+            text-align: center;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            color: #fff;
+        }
+        nav {
+            background-color: #388e3c; /* Dark green navigation */
+            padding: 10px 0;
+        }
+        nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+        }
+        nav ul li {
+            margin: 0 15px;
+        }
+        nav ul li a {
+            text-decoration: none;
+            color: #fff;
+            font-size: 1.2em;
+            transition: color 0.3s ease;
+        }
+        nav ul li a:hover {
+            color: #c8e6c9; /* Light green hover effect */
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 20px;
+        }
+        .card {
+            background: #fff;
+            color: #333;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            margin: 15px;
+            padding: 20px;
+            width: 250px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        .card h3 {
+            margin: 10px 0;
+            font-size: 1.5em;
+            color: #4caf50; /* Green color for titles */
+        }
+        .card a {
+            text-decoration: none;
+            background: #4caf50; /* Green background for button */
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 1em;
+            transition: background 0.3s ease;
+        }
+        .card a:hover {
+            background: #388e3c; /* Darker green on hover */
+        }
+        footer {
+            text-align: center;
+            padding: 10px 0;
+            background: #4caf50; /* Green footer */
+            color: #fff;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Genetic Statistics</h1>
+</header>
+
+<nav>
+    <ul>
+        <li><a href="{% url 'home' %}">Home</a></li>
+        <li><a href="{% url 'previous-results' %}">Previous Results</a></li>
+        <li><a href="{% url 'logout' %}">Logout</a></li>
+    </ul>
+</nav>
+
+<div class="container">
+    {% for test in tests %}
+    <div class="card">
+        <h3>{{ test.name }}</h3>
+        <a href="{% url test.url %}">Perform Test</a>
+    </div>
+    {% endfor %}
+</div>
+
+<footer>
+    <p>&copy; 2025 Genetic Statistics Application</p>
+</footer>
+
+</body>
+</html>

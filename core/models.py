@@ -19,8 +19,4 @@ class TestResult(models.Model):
     def __str__(self):
         return f"Test Result for {self.user.username} - {self.test_name}"
 
-class AnovaTest(models.Model):
-    user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
-    input_data = models.TextField()
-    result = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
+

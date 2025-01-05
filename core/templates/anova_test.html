@@ -4,6 +4,98 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ANOVA Test</title>
+    <style>
+        /* Resetting some default styles */
+        body, h2, h3, p, form {
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Basic page styling */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #2a9d8f;
+            margin-bottom: 20px;
+        }
+
+        /* Centering the form */
+        form {
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Styling labels and inputs */
+        label {
+            font-size: 16px;
+            margin-bottom: 10px;
+            display: block;
+            color: #333;
+        }
+
+        input[type="file"] {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 15px 0;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: #f9f9f9;
+        }
+
+        button {
+            display: inline-block;
+            padding: 12px 24px;
+            font-size: 16px;
+            background-color: #2a9d8f;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #21867a;
+        }
+
+        /* Styling the result section */
+        .results {
+            background-color: #fff;
+            padding: 20px;
+            margin-top: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .results h3 {
+            color: #264653;
+        }
+
+        .results p {
+            font-size: 18px;
+        }
+
+        .error {
+            color: red;
+            text-align: center;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
     <h2>ANOVA Test</h2>
@@ -15,13 +107,15 @@
     </form>
 
     {% if f_statistic and p_value %}
-        <h3>Results:</h3>
-        <p>F-statistic: {{ f_statistic }}</p>
-        <p>P-value: {{ p_value }}</p>
+        <div class="results">
+            <h3>Results:</h3>
+            <p><strong>F-statistic:</strong> {{ f_statistic }}</p>
+            <p><strong>P-value:</strong> {{ p_value }}</p>
+        </div>
     {% endif %}
 
     {% if error %}
-        <p style="color: red;">{{ error }}</p>
+        <p class="error">{{ error }}</p>
     {% endif %}
 </body>
 </html>

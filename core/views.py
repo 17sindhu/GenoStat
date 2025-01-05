@@ -1,59 +1,36 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
+from scipy import stats
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from django.contrib.auth import authenticate, login, logout
-from django.contrib import messages
-from django.http import HttpResponse, HttpResponseRedirect
-from scipy.stats import chisquare, f_oneway
-import matplotlib.pyplot as plt
-import base64
-from io import BytesIO, TextIOWrapper
-import csv
-from .forms import UploadCSVForm, ChiSquareForm, AnovaForm, HardyWeinbergForm
-from .models import TestResult, UploadedFile
-import hashlib
-import uuid
-from django.contrib.auth.models import User
-from django.core.mail import send_mail
 from django.shortcuts import render, redirect
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.template.loader import render_to_string
-from django.contrib.auth.tokens import default_token_generator
-from django.contrib.auth.forms import PasswordChangeForm
-from django.contrib.auth import get_user_model
-from django.contrib.sites.shortcuts import get_current_site
-from django.contrib.auth.forms import PasswordResetForm
+from django.contrib.auth import login, logout
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from .models import UploadedFile
+from django.http import HttpResponseRedirect
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.forms import AuthenticationForm
+from .forms import UserLoginForm, UserSignupForm
+from django.contrib import messages
+import csv
+from django.shortcuts import render
+from django.http import HttpResponse
+from .forms import HardyWeinbergForm, AlleleFrequencyForm, ChiSquareForm, UploadCSVForm
+import scipy.stats as stat
+from .forms import UploadCSVForm
+import io
+from scipy.stats import chi2_contingency
+import numpy as np
+from .forms import UploadCSVForm, ChiSquareForm
+import csv
+from scipy.stats import chisquare  
+import matplotlib.pyplot as plt
+from io import BytesIO
+import base64
+from .models import TestResult  # Assuming TestResult is the model for test results
+from .forms import HardyWeinbergForm  # import the appropriate form
+from .forms import AnovaForm
+from .models import AnovaTest  # Assuming you have a model to save results
 
 
-# Helper function for plotting
-def create_bar_plot(labels, observed, expected, title):
-    fig, ax = plt.subplots()
-    ax.bar(labels, observed, width=0.4, label='Observed', align='center', alpha=0.7)
-    ax.bar(labels, expected, width=0.4, label='Expected', align='edge', alpha=0.7)
-    ax.set_xlabel('Genotype')
-    ax.set_ylabel('Frequency')
-    ax.set_title(title)
-    ax.legend()
-
-    buf = BytesIO()
-    plt.savefig(buf, format='png')
-    buf.seek(0)
-    plot_url = base64.b64encode(buf.read()).decode('utf-8')
-    buf.close()
-    return plot_url
-
-def upload_file(request):
-    if request.method == 'POST' and request.FILES['file']:
-        uploaded_file = UploadedFile(
-            user=request.user,
-            file=request.FILES['file']
-        )
-        uploaded_file.save()
-        return HttpResponseRedirect('/')
-    return render(request, 'core/upload.html')
-
-
-# Registration View
 def register(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
@@ -63,10 +40,8 @@ def register(request):
             return redirect('home')
     else:
         form = UserCreationForm()
-    return render(request, 'core/register.html', {'form': form})
+    return render(request, 'register.html', {'form': form})
 
-
-# Login View
 def user_login(request):
     if request.method == 'POST':
         form = AuthenticationForm(data=request.POST)
@@ -78,11 +53,38 @@ def user_login(request):
         form = AuthenticationForm()
     return render(request, 'login.html', {'form': form})
 
-
-# Logout View
 def user_logout(request):
     logout(request)
     return redirect('login')
+
+
+@login_required
+def upload_file(request):
+    if request.method == 'POST':
+        form = UploadCSVForm(request.POST, request.FILES)
+        if form.is_valid():
+            file = request.FILES['csv_file']
+            # Logic to handle file upload (if applicable)
+            messages.success(request, "File uploaded successfully!")
+            return redirect('home')
+    else:
+        form = UploadCSVForm()
+    return render(request, 'upload.html', {'form': form})
+@login_required
+def home(request):
+    return render(request, 'core/home.html')
+
+def login_view(request):
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('/home/')  # Redirect to home page after successful login
+        else:
+            return render(request, "login.html", {"error": "Invalid credentials"})
+    return render(request, "login.html")
 
 def signup(request):
     if request.method == 'POST':
@@ -95,155 +97,227 @@ def signup(request):
             messages.error(request, "There were errors in your form. Please check below.")
     else:
         form = UserCreationForm()
-
+    
     return render(request, 'signup.html', {'form': form})
+from .forms import UploadCSVForm, ChiSquareForm
 
-# Home View
+ #Hardy-Weinberg Test View
+
+
 @login_required
+def hardy_weinberg_view(request):
+    if request.method == 'POST':
+        form = HardyWeinbergForm(request.POST)
+        if form.is_valid():
+            observed_AA = form.cleaned_data['observed_AA']
+            observed_AG = form.cleaned_data['observed_AG']
+            observed_GG = form.cleaned_data['observed_GG']
+            
+            # Save to the database
+            data = HardyWeinbergData.objects.create(
+                user=request.user,
+                observed_AA=observed_AA,
+                observed_AG=observed_AG,
+                observed_GG=observed_GG,
+            )
+            return redirect('perform_test', dataset_id=data.id, test_name='hardy-weinberg')
+    else:
+        form = HardyWeinbergForm()
+    return render(request, 'hardy_weinberg.html', {'form': form})
+
+
+
+def hardy_weinberg_test(AA_observed, AG_observed, GG_observed, total_observed):
+    # Calculate expected frequencies based on Hardy-Weinberg equilibrium
+    p = (2 * AA_observed + AG_observed) / (2 * total_observed)  # allele frequency for A
+    q = 1 - p  # allele frequency for G
+
+    expected_AA = p ** 2 * total_observed
+    expected_AG = 2 * p * q * total_observed
+    expected_GG = q ** 2 * total_observed
+
+    # Perform chi-square test
+    observed = [AA_observed, AG_observed, GG_observed]
+    expected = [expected_AA, expected_AG, expected_GG]
+
+    chi_square_stat, p_value = chisquare(observed, expected)
+
+    return chi_square_stat, p_value
+
+# Chi-Square Test View
+
+@login_required
+def chi_square_view(request):
+    if request.method == 'POST':
+        form = ChiSquareForm(request.POST)
+        if form.is_valid():
+            observed = form.cleaned_data['observed_values']
+            expected = form.cleaned_data['expected_values']
+            
+            # Save to the database
+            data = ChiSquareData.objects.create(
+                user=request.user,
+                observed_values=observed,
+                expected_values=expected,
+            )
+            return redirect('perform_test', dataset_id=data.id, test_name='chi-square')
+    else:
+        form = ChiSquareForm()
+    return render(request, 'chi_square.html', {'form': form})
+
+
+
+def perform_chi_square_test(observed_AA, observed_AG, observed_GG, expected_AA, expected_AG, expected_GG):
+    # Calculate the observed and expected frequency totals
+    observed = [observed_AA, observed_AG, observed_GG]
+    expected = [expected_AA, expected_AG, expected_GG]
+
+    # Normalize expected frequencies so that their sum matches the observed frequencies
+    total_observed = sum(observed)
+    total_expected = sum(expected)
+
+    if total_observed != total_expected:
+        # Scale the expected frequencies to match the sum of observed frequencies
+        scale_factor = total_observed / total_expected
+        expected = [e * scale_factor for e in expected]
+
+    # Perform the Chi-Square test
+    chi_square_stat, p_value = chisquare(observed, expected)
+
+    return chi_square_stat, p_value
+
+# Function to handle CSV data parsing
+
+def parse_csv(file):
+    data = []
+    decoded_file = file.read().decode('utf-8').splitlines()
+    csv_reader = csv.reader(decoded_file)
+    
+    for row in csv_reader:
+        if len(row) >= 6:  # Ensure each row has the expected number of columns
+            data.append(row)
+        else:
+            print(f"Skipping row: {row} (not enough columns)")
+    
+    return data
+
+
+# Home view to process CSV file upload
 def home(request):
     tests = [
         {"name": "Hardy-Weinberg Equilibrium Test", "url": "hardy-weinberg-test"},
         {"name": "Chi-Square Test for Independence", "url": "chi-square-test"},
-        {"name": "ANOVA Test", "url": "anova-test"},
+        # Add more tests here
     ]
-    return render(request, 'core/home.html', {'tests': tests})
 
-
-# Hardy-Weinberg Test View
-@login_required
-def hardy_weinberg_view(request):
-    chi_square, p_value, plot_url = None, None, None
     if request.method == 'POST':
-        form = UploadCSVForm(request.POST, request.FILES)
-        if form.is_valid():
-            try:
+        if 'upload_csv' in request.POST:
+            # Handling CSV Upload
+            csv_form = UploadCSVForm(request.POST, request.FILES)
+            if csv_form.is_valid():
                 file = request.FILES['csv_file']
-                data = list(csv.reader(TextIOWrapper(file.file, encoding='utf-8')))
-                observed = [int(data[1][0]), int(data[1][1]), int(data[1][2])]
-                total = sum(observed)
-                p = (2 * observed[0] + observed[1]) / (2 * total)
-                q = 1 - p
-                expected = [p**2 * total, 2 * p * q * total, q**2 * total]
-                chi_square, p_value = chisquare(observed, expected)
-                plot_url = create_bar_plot(['AA', 'AG', 'GG'], observed, expected,
-                                           f'Hardy-Weinberg Test\nChi-Square = {chi_square:.2f}, p-value = {p_value:.4f}')
-            except Exception as e:
-                messages.error(request, f"Error processing file: {str(e)}")
+                data = parse_csv(file)
+
+                # Assuming data is a dictionary with observed and expected keys
+                try:
+                    observed = [int(data[1][0]), int(data[1][1]), int(data[1][2])]
+                    expected = [int(data[1][3]), int(data[1][4]), int(data[1][5])]
+                except (IndexError, ValueError) as e:
+                    # Handle incorrect CSV format or parsing errors
+                    return render(request, 'core/home.html', {
+                        'csv_form': csv_form,
+                        'error': 'Invalid CSV format. Please ensure the file has correct data.',
+                        'tests': tests
+                    })
+
+                # Perform Hardy-Weinberg test
+                chi_square, p_value = hardy_weinberg_test(
+                    observed[0], observed[1], observed[2], sum(observed)
+                )
+
+                # Pass the data to the template
+                csv_data = {
+                    'observed': observed,
+                    'expected': expected
+                }
+
+                return render(request, 'core/home.html', {
+                    'csv_form': csv_form,
+                    'chi_square': chi_square,
+                    'p_value': p_value,
+                    'data': csv_data,
+                    'tests': tests
+                })
     else:
-        form = UploadCSVForm()
-    return render(request, 'hardy_weinberg.html', {
-        'form': form, 'chi_square': chi_square, 'p_value': p_value, 'plot_url': plot_url
+        csv_form = UploadCSVForm()
+
+    return render(request, 'core/home.html', {
+        'csv_form': csv_form,
+        'tests': tests
     })
 
-
-# Chi-Square Test View
-@login_required
-def chi_square_view(request):
-    chi_square, p_value, plot_url = None, None, None
-    if request.method == 'POST':
-        form = ChiSquareForm(request.POST)
-        if form.is_valid():
-            try:
-                observed = [form.cleaned_data[f'observed_{geno}'] for geno in ['AA', 'AG', 'GG']]
-                expected = [form.cleaned_data[f'expected_{geno}'] for geno in ['AA', 'AG', 'GG']]
-                chi_square, p_value = chisquare(observed, expected)
-                plot_url = create_bar_plot(['AA', 'AG', 'GG'], observed, expected,
-                                           f'Chi-Square Test\nChi-Square = {chi_square:.2f}, p-value = {p_value:.4f}')
-            except Exception as e:
-                messages.error(request, f"Error: {str(e)}")
-    else:
-        form = ChiSquareForm()
-    return render(request, 'chi_square.html', {
-        'form': form, 'chi_square': chi_square, 'p_value': p_value, 'plot_url': plot_url
-    })
-
-
-# ANOVA Test View
-@login_required
-def anova_test(request):
-    f_statistic, p_value, error = None, None, None
-    if request.method == 'POST':
-        if 'csv_file' in request.FILES:
-            try:
-                file = request.FILES['csv_file']
-                data = list(csv.reader(TextIOWrapper(file.file, encoding='utf-8')))
-                groups = [list(map(float, column)) for column in zip(*data[1:])]
-                f_statistic, p_value = f_oneway(*groups)
-            except Exception as e:
-                error = f"Error: {str(e)}"
-    return render(request, 'anova_test.html', {
-        'f_statistic': f_statistic, 'p_value': p_value, 'error': error
-    })
 @login_required
 def previous_results(request):
-    user = request.user
-    results = TestResult.objects.filter(user=user).order_by('-created_at')  # Assuming TestResult is the model for test results
-    return render(request, 'previous_results.html', {'results': results})
+    chi_square_results = ChiSquareData.objects.filter(user=request.user)
+    hardy_weinberg_results = HardyWeinbergData.objects.filter(user=request.user)
+    return render(request, 'previous_results.html', {
+        'chi_square_results': chi_square_results,
+        'hardy_weinberg_results': hardy_weinberg_results,
+    })
 
-from .forms import PasswordResetRequestForm
+# Function to perform tests (stub for now)
+@login_required
+def perform_test(request, dataset_id, test_name):
+    # Logic to fetch the data, perform the test, and return results
+    # Example: redirect to results page
+    messages.success(request, f"Performed {test_name} test successfully!")
+    return redirect('previous-results')
 
 
-
-def password_reset(request):
+def perform_test(request):
     if request.method == 'POST':
-        form = PasswordResetForm(request.POST)
+        form = HardyWeinbergForm(request.POST)
         if form.is_valid():
-            email = form.cleaned_data.get('email')
-            try:
-                user = User.objects.get(email=email)
-            except User.DoesNotExist:
-                user = None
-
-            if user:
-                # Generate token and uid
-                token = default_token_generator.make_token(user)
-                uid = urlsafe_base64_encode(user.pk.encode())
-
-                # Send email
-                domain = get_current_site(request).domain
-                reset_link = f'http://{domain}/password-reset/{uid}/{token}/'
-                subject = 'Password Reset Request'
-                message = render_to_string('core/password_reset_email.html', {
-                    'user': user,
-                    'reset_link': reset_link
-                })
-                send_mail(subject, message, 'noreply@yourdomain.com', [email])
-            return redirect('password_reset_done')
+            # Handle form data here (save results, etc.)
+            return redirect('home')  # Redirect to home page or any other page after successful submission
     else:
-        form = PasswordResetForm()
+        form = HardyWeinbergForm()
 
-    return render(request, 'password_reset_request.html', {'form': form})
-
-
-def password_reset_done(request):
-    return render(request, 'password_reset_done.html')
+    return render(request, 'perform_test.html', {'form': form})
 
 
 
-def password_reset_confirm(request, uidb64, token):
-    try:
-        # Decode UID and get user
-        uid = urlsafe_base64_decode(uidb64).decode()
-        user = get_user_model().objects.get(pk=uid)
+# View for the ANOVA test
+def anova_test_view(request):
+    if request.method == 'POST':
+        form = AnovaForm(request.POST)
+        if form.is_valid():
+            # Get data from the form (convert string input to list of floats)
+            group1_data = list(map(float, form.cleaned_data['group1'].split(',')))
+            group2_data = list(map(float, form.cleaned_data['group2'].split(',')))
+            group3_data = form.cleaned_data['group3']
+            if group3_data:
+                group3_data = list(map(float, group3_data.split(',')))
 
-        # Validate the token
-        if default_token_generator.check_token(user, token):
-            if request.method == 'POST':
-                password_form = PasswordChangeForm(user, request.POST)
-                if password_form.is_valid():
-                    password_form.save()
-                    return redirect('password_reset_complete')
+            # Perform ANOVA test
+            if group3_data:
+                # Perform one-way ANOVA for three groups
+                f_statistic, p_value = stats.f_oneway(group1_data, group2_data, group3_data)
             else:
-                password_form = PasswordChangeForm(user)
-            return render(request, 'password_reset_confirm.html', {'form': password_form})
+                # Perform two-group ANOVA if group3 is not provided
+                f_statistic, p_value = stats.f_oneway(group1_data, group2_data)
 
-        else:
-            return redirect('password_reset_failed')
+            # Prepare result data
+            result_data = {
+                'f_statistic': f_statistic,
+                'p_value': p_value
+            }
 
-    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        return redirect('password_reset_failed')
-def password_reset_failed(request):
-    return render(request, 'password_reset_failed.html')
+            # Save result to the database (optional)
+            AnovaTest.objects.create(user=request.user, input_data=form.cleaned_data['group1'] + "," + form.cleaned_data['group2'] + ("," + form.cleaned_data['group3'] if form.cleaned_data['group3'] else ""), result=str(result_data))
 
-def password_reset_complete(request):
-    return render(request, 'password_reset_complete.html')
+            return render(request, 'anova_result.html', {'result_data': result_data})
+    else:
+        form = AnovaForm()
+
+    return render(request, 'anova_test.html', {'form': form})

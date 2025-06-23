@@ -1,0 +1,3 @@
+README.md# 🧬 GenoStat  **GenoStat** is a bioinformatics tool designed for statistical analysis and visualization of genomic data. 
+It simplifies working with large-scale biological datasets like FASTA, VCF, and CSV, making it easier for researchers and students to gain insights.  
+---  ## 🚀 Features  - Genomic data loading and processing - Statistical summary of sequences or variants - Data visualization using Python plotting libraries - Support for common genomic data formats - Modular and beginner-friendly codebase  ---  
